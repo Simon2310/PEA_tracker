@@ -10,7 +10,7 @@
 **/base/
 
 # renv
-** /renv/
+**/renv/
 
 # User-specific files
 .Ruserdata
