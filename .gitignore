@@ -4,6 +4,13 @@
 
 # Session Data files
 .RData
+.rData
+
+# data folder
+**/base/
+
+# renv
+** /renv/
 
 # User-specific files
 .Ruserdata
