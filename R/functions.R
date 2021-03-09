@@ -6,14 +6,16 @@ library(plotly);
 library(DT);
 #library(tsm);
 library(vars);
-library(mFilter);
+#library(mFilter);
 library(rlist);
 library(tidyr)
 
 
-load("~/R/projets/PEA/base/transactions_test.rData")
+load("~/R/projets/PEA_tracker/base/transactions_test.rData")
 
-load("~/R/projets/PEA/base/tickers.rData")
+load("~/R/projets/PEA_tracker/base/tickers.rData")
+
+load("~/R/projets/PEA_tracker/R/fonctions_communes.R")
 
 #"génération de histo_port à la volée à partir du registre: somme cumulative des quantités d'actifs possédés (positif à l'achat, négatif à la vente)
 histo_port<-registre %>% dplyr::select(date,quantité,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ quantité,operation=="vente" ~ -quantité )) %>% 
@@ -32,28 +34,12 @@ inv_port<-registre %>% dplyr::select(date,montant_final,Ticker,operation) %>% mu
 histo_port<-xts(histo_port%>% dplyr::select(-c("date")),order.by=as.Date(histo_port$date)) 
 inv_port<-xts(inv_port%>% dplyr::select(-c("date")),order.by=as.Date(inv_port$date)) 
 
-listing<-function(x){
-        values<-list()
-        #  stockData<-new.env()
-        
-        for (i in x){
-                getSymbols(i,from="2020-04-01")
-                # trans<-get(i)
-                values[[i]]<-Cl(get(i))
-        }
-        list.cbind(values)
-}
 
-
-
-filling<- function(x){
-        x %>% na.approx() %>% na.locf() %>% na.locf(fromLast=TRUE)
-}
 
 #on prend la liste des actifs correspondant au filtre utilisateur (OPC, ETF, action ..)
 list_label<-(registre %>% distinct(Ticker))
 #on va chercher les valeurs
-valeurs<-listing(list_label$Ticker)
+valeurs<-(listing(list_label$Ticker))
 #on renomme les colonnes pour avoir le ticker sans ".close"
 colnames(valeurs)<-list_label$Ticker
 #on vire les NA par interpolation
@@ -98,6 +84,23 @@ for (cat in categories){
         
 }
 
+listing<-function(x){
+  values<-list()
+  #  stockData<-new.env()
+  
+  for (i in x){
+    getSymbols(i,from="2020-04-01")
+    # trans<-get(i)
+    values[[i]]<-Cl(get(i))
+  }
+  values
+}
+
+
+
+filling<- function(x){
+  x %>% na.approx() %>% na.locf() %>% na.locf(fromLast=TRUE)
+}
 
 #fonction pour aller chercher les prix des actifs du portefeuille, depuis début 2020, et retourner un unique xts avec les valeurs
 
