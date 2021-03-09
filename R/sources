@@ -1,0 +1,18 @@
+#exemple de règles et usage TA
+https://scanz.com/ultimate-guide-to-technical-stock-screeners/
+
+
+https://bookdown.org/kochiuyu/Technical-Analysis-with-R/technical-indicators.html
+
+
+#usage tidyquant
+https://cran.r-project.org/web/packages/tidyquant/vignettes/TQ05-performance-analysis-with-tidyquant.html
+
+#Fonctions dispos avec tq_transmute
+https://cran.r-project.org/web/packages/tidyquant/vignettes/TQ02-quant-integrations-in-tidyquant.html
+
+#Précisions sur les indicateurs
+https://bookdown.org/kochiuyu/technical-analysis-with-r-second-edition/bollinger-band.html
+
+
+Idée: after stock screening, basculer sur portefeuille HC, et laisser la main sur les périodes des MA via input Shiny
