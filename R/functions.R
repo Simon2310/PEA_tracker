@@ -15,7 +15,7 @@ load("~/R/projets/PEA_tracker/base/transactions_test.rData")
 
 load("~/R/projets/PEA_tracker/base/tickers.rData")
 
-load("~/R/projets/PEA_tracker/R/fonctions_communes.R")
+source("~/R/projets/PEA_tracker/R/fonctions_communes.R")
 
 #"génération de histo_port à la volée à partir du registre: somme cumulative des quantités d'actifs possédés (positif à l'achat, négatif à la vente)
 histo_port<-registre %>% dplyr::select(date,quantité,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ quantité,operation=="vente" ~ -quantité )) %>% 
@@ -84,23 +84,10 @@ for (cat in categories){
         
 }
 
-listing<-function(x){
-  values<-list()
-  #  stockData<-new.env()
-  
-  for (i in x){
-    getSymbols(i,from="2020-04-01")
-    # trans<-get(i)
-    values[[i]]<-Cl(get(i))
-  }
-  values
-}
 
 
 
-filling<- function(x){
-  x %>% na.approx() %>% na.locf() %>% na.locf(fromLast=TRUE)
-}
+
 
 #fonction pour aller chercher les prix des actifs du portefeuille, depuis début 2020, et retourner un unique xts avec les valeurs
 
