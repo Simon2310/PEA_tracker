@@ -14,23 +14,14 @@ visu_NA<- function(NAmat,sample_size) {
   #le passé est en bas
 }
 
-consecutive_NA<- function(df_in,size) {
-  #dans le data.frame avec les valeurs, regarde le nb max de consecutive NA et le total sur les nb=size valeurs les plus récentes (en bas du df donc tail)
-  
-    df_in%>%tail(size) %>% map_df(function(.x) {
-      r<-rle(is.na(.x))
-      data.frame(n_con=max(r$lengths[r$values]),n_tot=sum(r$lengths[r$values]))
-    })
-}
 
-agregate_NA<-function(df_in,...){
-  #déroule et synthétise consecutive_NA sur plusieurs fenêtres temporelles (autant que voulu), en sortie un data.frame
-  df<-data.frame(name=colnames(df_in))
-  
-  for (i in list(...)){
-    names<-colnames(df)
-    df<-cbind(df,consecutive_NA(df_in,i))
-    colnames(df)<-c(names,paste0("ncon_",i),paste0("ntot_",i))
+agregate_NA<-function(list_in,input_list){
+  #déroule et synthétise consecutive_NA sur plusieurs fenêtres temporelles. En entrée il faut prendre df$close pour chaque ticker
+  sortie=list()
+  for (i in input_list){
+    r<-rle(is.na(tail(list_in,i)))
+    sortie[[paste0("ncon_",i)]]<-max(r$lengths[r$values])/i
+    sortie[[paste0("ntot_",i)]]<-sum(r$lengths[r$values])/i
   }
-  df
+  sortie
 }

@@ -4,9 +4,7 @@ library(dplyr);
 library(highcharter);
 library(plotly);
 library(DT);
-#library(tsm);
 library(vars);
-#library(mFilter);
 library(rlist);
 library(tidyr);
 library(purrr);
@@ -15,11 +13,25 @@ library(tidyquant)
 source("~/R/projets/PEA_tracker/R/fonctions_communes.R")
 load("~/R/projets/PEA_tracker/base/ticktable.rData")
 
-Analysis<-function(ticklist) {
-  base<-tq_get(ticklist,get="stock.prices",complete_cases=TRUE)
-  nadeal<-base %>% group_by(across(1))  %>%
+#téléchargement brut des données et mise en forme dans un nested df
+download<-function(ticklist) {
+  tq_get(ticklist,get="stock.prices",complete_cases=TRUE)%>% group_by(across(1)) %>% nest(data=-c(Ticker,Name,Exchange,Type,Category, Country))
+}
+
+#computation des nb de miss NA sur tous les horizons listés dans input_list
+  # ex pour c(10,200): stats des NA sur les 10 et 200 valeurs les plus récentes
+#on travaille à partir des données brutes nested (fonction download) et on enrichit le dataframe
+stats_na<-function(df,input_list){
+  df %>% cbind(map_df(.$data,~agregate_NA(.x$close,input_list)))
+}
+
+#compute les indicateurs dans le nested dataframe filtré (tickers avec trop de NA éliminés)
+techana<-function(df){
+  #t<-df$data %>% map(function(.x){
+    df<-df %>% mutate(data=map(data,function(.x){
+      
+    .x%>%
     mutate_at(vars(c(open,high,low,close,volume,adjusted)),~filling(.)) %>%
-    #~na.locf((na.locf((na.spline(.,na.rm=FALSE)),na.rm=FALSE)),fromLast = TRUE))  %>%
     
     
     #day return
@@ -43,13 +55,12 @@ Analysis<-function(ticklist) {
     tq_mutate_xy(x=close,y=volume, mutate_fun = OBV) %>%
     #CMF en 2 étapes
     tq_mutate(select = c(high, low, close), mutate_fun = CLV) %>%
-    mutate(cmf = tq_cmf(clv, volume, 20)) %>%
+    mutate(cmf = tq_cmf(clv, volume, 20))
     
     
-    nest(data=-c(Ticker,Name,Exchange,Type,Category, Country))
-  
-  
-  brut <- base %>% group_by(across(1)) %>% nest(data=-c(Ticker,Name,Exchange,Type,Category, Country))
-  
-  TAout=list(brut,nadeal)
+    
+  })
+
+    )
+  df
 }
