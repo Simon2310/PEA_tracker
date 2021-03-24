@@ -1,7 +1,19 @@
 #lanceur principal
+library(quantmod);
+library(dplyr);
+library(highcharter);
+library(plotly);
+library(DT);
+library(vars);
+library(rlist);
+library(tidyr);
+library(purrr);
+library(tidyquant)
+
 
 ui<-navbarPage("PEA",
     tabPanel("Ajout mouvement",
+            
 
             registerFormUI("form", "Form #1")       
            
@@ -28,10 +40,10 @@ ui<-navbarPage("PEA",
   )
 
 server <- function(input, output, session) {
-  registerServer("form")
-  portefeuilleServer("portefeuille")
-  portefeuille_netServer("portefeuille_net")
-  courshcServer("courshc")
+  a<-registerServer("form")
+ # portefeuilleServer("portefeuille",reg_price)
+  #portefeuille_netServer("portefeuille_net",reg_price)
+  #courshcServer("courshc")
 }
 
 shinyApp(ui, server)

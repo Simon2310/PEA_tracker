@@ -31,20 +31,20 @@ portefeuilleUI <- function(id, label = "portefeuille") {
         )
 }
 
-portefeuilleServer <- function(id) {
+portefeuilleServer <- function(id,regmod) {
     moduleServer(
         id,
         function(input, output,session) {
         
           valuesInput <- reactive({
             req(input$type)
-            if ("all" %in% input$type){registre %>% distinct(type) %>% pull(type)}
-            else {registre %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
+            if ("all" %in% input$type){regmod$regReac$reg %>% distinct(type) %>% pull(type)}
+            else {regmod$regReac$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
           })
           
           actifTicker<-reactive({
             req(input$actif)
-            tickers %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
+            regmod$regReac$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
           })
           
           
@@ -68,13 +68,13 @@ portefeuilleServer <- function(id) {
              if ("OPC" %in% valuesInput()){
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = symb, data = valeur_agr[,symb])
+                  hc_add_series(name = symb, data = regmod$reg_priceReac()$val_agr[,symb])
                 }
              }
              else {
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = tickers[[which(tickers$Ticker==symb)[1],'Nom']], data = valeur_agr[,symb])
+                  hc_add_series(name = regmod$regReac$tick[[which(regmod$regReac$tick$Ticker==symb)[1],'Nom']], data = regmod$reg_priceReac()$val_agr[,symb])
                 }
               
              }
@@ -85,14 +85,15 @@ portefeuilleServer <- function(id) {
           
 
             reactiveHighchart2<-reactive ({ 
+              req(reg_cours())
               hcc<-highchart(type = "stock")
               
               for (symb in actifTicker()){
-                data_flags<-registre %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
+                data_flags<-regmod$regReac$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
   
                 colnames(data_flags)<-c("date","title","text")
                 hcc <- hcc %>%
-                 hc_add_series(name = tickers[[which(tickers$Ticker==symb)[1],'Nom']],id=symb, data = valeurs[,symb]) %>%
+                 hc_add_series(name = regmod$regReac$tick[[which(regmod$regReac$tick$Ticker==symb)[1],'Nom']],id=symb, data = regmod$reg_priceReac()$val[,symb]) %>%
                   hc_add_series(
                     data_flags, 
                     hcaes(x = date),

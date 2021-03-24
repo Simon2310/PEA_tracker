@@ -9,7 +9,7 @@ library(rlist);
 library(tidyr);
 library(purrr);
 library(tidyquant)
-test bidon git
+
 source("~/R/projets/PEA_tracker/R/fonctions_communes.R")
 load("~/R/projets/PEA_tracker/base/ticktable.rData")
 
