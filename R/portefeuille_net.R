@@ -13,7 +13,7 @@ portefeuilleUI <- function(id, label = "portefeuille_net") {
               fluidRow(
                   column(3,
                       selectInput(ns("type"),
-                                  "type d'actif :", choices=c("all",registre %>% distinct(type) %>% pull(type)),multiple=TRUE,selected=NULL)
+                                  "type d'actif :", choices=NULL,multiple=TRUE,selected=NULL)
                   ),
                   column(9, highchartOutput(ns("values")))
                   
@@ -22,7 +22,7 @@ portefeuilleUI <- function(id, label = "portefeuille_net") {
               fluidRow(
                 column(3,
                        selectInput(ns("actif"),
-                                   "type d'actif :", choices=registre %>% distinct(libelle) %>% pull(libelle),multiple=TRUE,selected=NULL)
+                                   "type d'actif :", choices=NULL,multiple=TRUE,selected=NULL)
                 ),
                 column(9, highchartOutput(ns("parti")))
    
@@ -39,35 +39,35 @@ portefeuilleUI <- function(id, label = "portefeuille_net") {
         )
 }
 
-portefeuille_netServer <- function(id,regmod) {
+portefeuille_netServer <- function(id,registreReac) {
     moduleServer(
         id,
         function(input, output,session) {
 
+
           
-          last_value<-reactive ({
-          last_value<-as.data.frame(t(regmod$reg_priceReac()$val_agr[nrow(valeur_agr),]))
-          last_value$Ticker<-rownames(last_value)
-          last_value
-          })
-          
-          bilan<-regmod$regReac$reg%>%group_by(operation,libelle,Ticker)%>%summarise(Montant=sum(montant_final))%>%spread(key=operation,value=Montant) %>%
-             left_join(last_value,by="Ticker")
+          bilan<-reactive ({
+            bilan<-registreReac()$reg%>%group_by(operation,libelle,Ticker)%>%summarise(Montant=sum(montant_final))%>%spread(key=operation,value=Montant) %>%
+             left_join(registreReac()$last_val,by="Ticker")
           colnames(bilan)<-c("Actif","Ticker","Montant investi","Montant retiré","Montant restant")
+          bilan
+          })
           
         
           valuesInput <- reactive({
             req(input$type)
-            if ("all" %in% input$type){regmod$regReac$reg %>% distinct(type) %>% pull(type)}
-            else {regmod$regReac$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
+            if ("all" %in% input$type){registreReac()$reg %>% distinct(type) %>% pull(type)}
+            else {registreReac()$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
           })
           
           actifTicker<-reactive({
             req(input$actif)
-            regmod$regReac$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
+            registreReac()$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
           })
           
           reactiveHighchart1 <- reactive({
+            req(registreReac()$ope)
+            
             req(input$type)
              hc<-highchart(type="stock") %>%
                 #hc_title(text = "Répartition du portefeuille") %>%
@@ -78,17 +78,17 @@ portefeuille_netServer <- function(id,regmod) {
              if ("OPC" %in% valuesInput()){
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = symb, data = regmod$reg_priceReac()$val_net_inv[,symb])
+                  hc_add_series(name = symb, data = registreReac()$val_net_inv[,symb])
                 }
              }
              else {
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = regmod$regReac$tick[[which(regmod$regReac$tick$Ticker==symb)[1],'Nom']], data = regmod$reg_priceReac()$val_net_inv[,symb],lineWidth=1)
+                  hc_add_series(name = registreReac()$tick[[which(registreReac()$tick$Ticker==symb)[1],'Nom']], data = registreReac()$val_net_inv[,symb],lineWidth=1)
                 }
                for (cat in input$type){
                  hc <- hc %>%
-                   hc_add_series(name = cat, data = regmod$reg_priceReac()$val_net_inv[,cat],lineWidth=3)
+                   hc_add_series(name = cat, data = registreReac()$val_net_inv[,cat],lineWidth=3)
                }
               
              }
@@ -98,26 +98,27 @@ portefeuille_netServer <- function(id,regmod) {
             })
           
           reactiveHighchart2 <- reactive({
+            req(registreReac()$ope)
+            
             req(input$actif)
-            req(reg_cours())
-            bilan_filter<-bilan%>%filter(Ticker %in% actifTicker())%>% dplyr::select(-c("Ticker"))
+            bilan_filter<-bilan()%>%filter(Ticker %in% actifTicker())%>% dplyr::select(-c("Ticker"))
 
             hcc<-highchart(type = "stock") %>%
               hc_yAxis_multiples(create_yaxis(2, height = c(3, 1), turnopposite = TRUE))
             
             for (symb in actifTicker()){
-              data_flags<-regmod$regReac$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
+              data_flags<-registreReac()$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
               
               colnames(data_flags)<-c("date","title","text")
               hcc <- hcc %>%
-                hc_add_series(name = regmod$regReac$tick[[which(regmod$regReac$tick$Ticker==symb)[1],'Nom']],id=symb, data = regmod$reg_priceReac()$val_net_inv[,symb],yAxis=0) %>%
+                hc_add_series(name = registreReac()$tick[[which(registreReac()$tick$Ticker==symb)[1],'Nom']],id=symb, data = registreReac()$val_net_inv[,symb],yAxis=0) %>%
                 hc_add_series(
                   data_flags, 
                   hcaes(x = date),
                   type = "flags", 
                   onSeries = symb
                 ) %>%
-                hc_add_series(name = regmod$regReac$tick[[which(regmod$regReac$tick$Ticker==symb)[1],'Nom']], data = regmod$reg_priceReac()$ope[,symb],yAxis=1,type="column") 
+                hc_add_series(name = registreReac()$tick[[which(registreReac()$tick$Ticker==symb)[1],'Nom']], data = registreReac()$ope[,symb],yAxis=1,type="column") 
               
               #pb: si pas de vente, ou d'achat, alors la ligne dessus plante
             }

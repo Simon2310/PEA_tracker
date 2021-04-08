@@ -62,6 +62,7 @@ registerServer <- function(id) {
                                        val_net = NULL,
                                        val = NULL,
                                        ope = NULL,
+                                       last_val=NULL,
                                        reg=registre,tick=tickers)
           
           suivi<-reactiveValues(texte="...")
@@ -197,19 +198,27 @@ registerServer <- function(id) {
                 valeur_net_inv<-merge(valeur_net_inv,new_inv)
                 colnames(valeur_agr)<-c(names,cat)
                 colnames(valeur_net_inv)<-c(names,cat)
-                
               }
               
+              last_value<-as.data.frame(t(valeur_agr[nrow(valeur_agr),]))
+              last_value$Ticker<-rownames(last_value)
+              
+              registreReac$last_val=last_value
               registreReac$val_agr=valeur_agr
               registreReac$val_net_inv=valeur_net_inv
               registreReac$val=valeurs
               registreReac$ope=operations
               
+              
+              portefeuilleServer("portefeuille",registreReac)
+              portefeuille_netServer("portefeuille_net",registreReac)
+              testServer("test",registreReac)
+              
               suivi$texte="done"
             })
             
             
-            return(regReac=registreReac)
+            return(regReac=reactive({registreReac}))
               
             
         }
