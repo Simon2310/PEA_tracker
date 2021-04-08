@@ -12,6 +12,15 @@ load("~/R/projets/PEA_tracker/base/transactions_test.rData")
 
 load("~/R/projets/PEA_tracker/base/tickers.rData")
 
+"--------------------Global Vars---------------------------------------"
+STORED <- reactiveValues(val_agr=NULL,
+                         val_net = NULL,
+                         val = NULL,
+                         ope = NULL,
+                         last_val=NULL,
+                         reg=registre,tick=tickers)
+"----------------------------------------------------------------------"
+
 registerFormUI <- function(id, label = "form") {
     ns <- NS(id)
     tagList(
@@ -57,21 +66,14 @@ registerServer <- function(id) {
         id,
         function(input, output, session) {
       
-              
-          registreReac<-reactiveValues(val_agr=NULL,
-                                       val_net = NULL,
-                                       val = NULL,
-                                       ope = NULL,
-                                       last_val=NULL,
-                                       reg=registre,tick=tickers)
           
           suivi<-reactiveValues(texte="...")
           
             observeEvent(
               input$libelle,
               { if (input$libelle %in% tickers$Nom) {
-                updateSelectizeInput(session,"type",selected=registreReac$reg[[which(registreReac$reg$libelle==input$libelle)[1],'type']])
-                updateTextInput(session,"ticker",value=registreReac$tick[[which(registreReac$tick$Nom==input$libelle)[1],'Ticker']])
+                updateSelectizeInput(session,"type",selected=STORED$reg[[which(STORED$reg$libelle==input$libelle)[1],'type']])
+                updateTextInput(session,"ticker",value=STORED$tick[[which(STORED$tick$Nom==input$libelle)[1],'Ticker']])
               }
               }
             )
@@ -86,7 +88,7 @@ registerServer <- function(id) {
             observeEvent(
               input$save, {
               
-                registreReac$reg<-registreReac$reg %>% add_row(date=input$date,
+                STORED$reg<-STORED$reg %>% add_row(date=input$date,
                                     operation=input$ordre,
                                     libelle=input$libelle,
                                     Ticker=input$ticker,
@@ -98,12 +100,12 @@ registerServer <- function(id) {
                                     TTF=input$TTF,
                                     montant_final=input$net_hors_TTF+input$TTF
                                     )
-                registre<-registreReac$reg
+                registre<-STORED$reg
                 save(registre,file="base/transactions_test.rData")
                 
                 if (!(input$libelle %in% tickers$Nom)){
-                  registreReac$tick<-registreReac$tick %>% add_row(Nom=input$libelle,Ticker=input$ticker)
-                  tickers<-registreReac$tick
+                  STORED$tick<-STORED$tick %>% add_row(Nom=input$libelle,Ticker=input$ticker)
+                  tickers<-STORED$tick
                   save(tickers,file="base/tickers.rData")
                 }
                 
@@ -114,17 +116,17 @@ registerServer <- function(id) {
               
               if (!is.null(input$out_rows_selected)) {
                 
-                registreReac$reg <- registreReac$reg[-as.numeric(input$out_rows_selected),]
+                STORED$reg <- STORED$reg[-as.numeric(input$out_rows_selected),]
               }
             })
             
             observeEvent(input$deleteconfirm,{
-              registre<-registreReac$reg
+              registre<-STORED$reg
               save(registre,file="base/transactions_test.rData")
             })
             
             output$out <- DT::renderDataTable({
-              registreReac$reg
+              STORED$reg
             })
             
             output$txt <- renderText({
@@ -135,13 +137,13 @@ registerServer <- function(id) {
             
             observeEvent (input$load_prices,{
               
-              histo_port<-registreReac$reg %>% dplyr::select(date,quantité,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ quantité,operation=="vente" ~ -quantité )) %>% 
+              histo_port<-STORED$reg %>% dplyr::select(date,quantité,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ quantité,operation=="vente" ~ -quantité )) %>% 
                 spread(key=Ticker,value=abs) %>%
                 group_by(date) %>%
                 summarise_at(vars(-operation,-quantité),funs(sum(., na.rm = TRUE))) %>%
                 mutate_if(is.numeric,cumsum)
               #génération de inv_port à la volée à partir du registre: par actif, somme cumulative des montants investis (positif à l'achat, négatif à la vente)
-              inv_port<-registreReac$reg %>% dplyr::select(date,montant_final,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ montant_final,operation=="vente" ~ -montant_final )) %>% 
+              inv_port<-STORED$reg %>% dplyr::select(date,montant_final,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ montant_final,operation=="vente" ~ -montant_final )) %>% 
                 spread(key=Ticker,value=abs) %>%
                 group_by(date) %>%
                 summarise_at(vars(-operation,-montant_final),funs(sum(., na.rm = TRUE))) %>%
@@ -154,7 +156,7 @@ registerServer <- function(id) {
               
               
               #on prend la liste des actifs correspondant au filtre utilisateur (OPC, ETF, action ..)
-              list_label<-(registreReac$reg %>% distinct(Ticker))
+              list_label<-(STORED$reg %>% distinct(Ticker))
               #on va chercher les valeurs
               valeurs<-(listing(list_label$Ticker))
               #on renomme les colonnes pour avoir le ticker sans ".close"
@@ -186,12 +188,12 @@ registerServer <- function(id) {
               
               #agrégation par catégorie, pour rendu utilisateur
               
-              categories<-registreReac$reg %>% distinct(type) %>% pull(type)
+              categories<-STORED$reg %>% distinct(type) %>% pull(type)
               
               
               for (cat in categories){
                 names<-colnames(valeur_agr)
-                elt<-registreReac$reg %>% filter(type==cat) %>% distinct(Ticker) %>% pull(Ticker)
+                elt<-STORED$reg %>% filter(type==cat) %>% distinct(Ticker) %>% pull(Ticker)
                 new<-valeur_agr[,elt] %>% rowSums() %>% xts(order.by = index(valeur_agr))
                 new_inv<-valeur_net_inv[,elt] %>% rowSums() %>% xts(order.by = index(valeur_net_inv))
                 valeur_agr<-merge(valeur_agr,new)
@@ -203,22 +205,18 @@ registerServer <- function(id) {
               last_value<-as.data.frame(t(valeur_agr[nrow(valeur_agr),]))
               last_value$Ticker<-rownames(last_value)
               
-              registreReac$last_val=last_value
-              registreReac$val_agr=valeur_agr
-              registreReac$val_net_inv=valeur_net_inv
-              registreReac$val=valeurs
-              registreReac$ope=operations
+              STORED$last_val=last_value
+              STORED$val_agr=valeur_agr
+              STORED$val_net_inv=valeur_net_inv
+              STORED$val=valeurs
+              STORED$ope=operations
               
-              
-              portefeuilleServer("portefeuille",registreReac)
-              portefeuille_netServer("portefeuille_net",registreReac)
-              testServer("test",registreReac)
+  
               
               suivi$texte="done"
             })
             
             
-            return(regReac=reactive({registreReac}))
               
             
         }

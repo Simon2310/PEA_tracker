@@ -11,38 +11,45 @@ library(purrr);
 library(tidyquant)
 
 
-ui<-navbarPage("PEA",
-    tabPanel("Ajout mouvement",
-            
 
-            registerFormUI("form", "Form #1")       
-           
+ui<-navbarPage("PEA",
+               
+         navbarMenu("Suivi PEA",
+            tabPanel("Registre",
+                    
+        
+                    registerFormUI("form", "Form #1")       
+                   
+                    ),
+            
+            tabPanel("test", testUI("test", "Test #1")),
+            
+            tabPanel("Suivi des cours",
+                     
+                    portefeuilleUI("portefeuille", "Portefeuille #1")       
+                     
+                    ),
+            
+            tabPanel("Suivi des plus-values",
+                     
+                     portefeuilleUI("portefeuille_net", "Portefeuille_net #1")       
+                     
             ),
-    
-    tabPanel("Suivi portefeuille",
-             
-            portefeuilleUI("portefeuille", "Portefeuille #1")       
-             
-            ),
-    
-    tabPanel("Net investissement",
-             
-             portefeuilleUI("portefeuille_net", "Portefeuille_net #1")       
-             
-    ),
-    
-    tabPanel("Suivi actif HC",
-             
-             suiviCourshcUI("courshc", "Courshc #1")       
-             
-            )
+            
+            tabPanel("Analyse actif",
+                     
+                     suiviCourshcUI("courshc", "Courshc #1")       
+                     
+                    )
+         )
     
   )
 
 server <- function(input, output, session) {
-  a<-registerServer("form")
- # portefeuilleServer("portefeuille",reg_price)
-  #portefeuille_netServer("portefeuille_net",reg_price)
+  registerServer("form")
+ portefeuilleServer("portefeuille")
+  portefeuille_netServer("portefeuille_net")
+  testServer("test")
   #courshcServer("courshc")
 }
 

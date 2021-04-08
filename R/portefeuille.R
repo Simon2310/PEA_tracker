@@ -31,27 +31,30 @@ portefeuilleUI <- function(id, label = "portefeuille") {
         )
 }
 
-portefeuilleServer <- function(id,registreReac) {
+portefeuilleServer <- function(id) {
     moduleServer(
         id,
         function(input, output,session) {
         
-
+          observe( { req(STORED$ope)
+            updateSelectInput(session,"actif",choices=STORED$reg %>% distinct(libelle) %>% pull(libelle))
+            updateSelectInput(session,"type",choices=STORED$reg %>% distinct(type) %>% pull(type))
+          })
           
           valuesInput <- reactive({
             req(input$type)
-            if ("all" %in% input$type){registreReac()$reg %>% distinct(type) %>% pull(type)}
-            else {registreReac()$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
+            if ("all" %in% input$type){STORED$reg %>% distinct(type) %>% pull(type)}
+            else {STORED$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
           })
           
           actifTicker<-reactive({
             req(input$actif)
-            registreReac()$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
+            STORED$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
           })
           
           
            reactiveHighchart1<-reactive ({ 
-             req(registreReac()$ope)
+             req(STORED$ope)
              hc<-highchart(type="stock") %>%
                 hc_chart(type = "area") %>%
                 #hc_title(text = "Répartition du portefeuille") %>%
@@ -71,13 +74,13 @@ portefeuilleServer <- function(id,registreReac) {
              if ("OPC" %in% valuesInput()){
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = symb, data = registreReac()$val_agr[,symb])
+                  hc_add_series(name = symb, data = STORED$val_agr[,symb])
                 }
              }
              else {
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = registreReac()$tick[[which(registreReac()$tick$Ticker==symb)[1],'Nom']], data = registreReac()$val_agr[,symb])
+                  hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']], data = STORED$val_agr[,symb])
                 }
               
              }
@@ -88,16 +91,16 @@ portefeuilleServer <- function(id,registreReac) {
           
 
             reactiveHighchart2<-reactive ({ 
-              req(registreReac()$ope)
+              req(STORED$ope)
               
               hcc<-highchart(type = "stock")
               
               for (symb in actifTicker()){
-                data_flags<-registreReac()$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
+                data_flags<-STORED$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
   
                 colnames(data_flags)<-c("date","title","text")
                 hcc <- hcc %>%
-                 hc_add_series(name = registreReac()$tick[[which(registreReac()$tick$Ticker==symb)[1],'Nom']],id=symb, data = registreReac()$val[,symb]) %>%
+                 hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']],id=symb, data = STORED$val[,symb]) %>%
                   hc_add_series(
                     data_flags, 
                     hcaes(x = date),
