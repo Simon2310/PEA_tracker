@@ -23,5 +23,5 @@ agregate_NA<-function(list_in,input_list){
     sortie[[paste0("ncon_",i)]]<-max(r$lengths[r$values])/i
     sortie[[paste0("ntot_",i)]]<-sum(r$lengths[r$values])/i
   }
-  sortie
+  sortie%>%as.data.frame()
 }

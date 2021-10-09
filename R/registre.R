@@ -12,6 +12,7 @@ load("~/R/projets/PEA_tracker/base/transactions_test.rData")
 
 load("~/R/projets/PEA_tracker/base/tickers.rData")
 
+
 "--------------------Global Vars---------------------------------------"
 STORED <- reactiveValues(val_agr=NULL,
                          val_net = NULL,
@@ -100,14 +101,21 @@ registerServer <- function(id) {
                                     TTF=input$TTF,
                                     montant_final=input$net_hors_TTF+input$TTF
                                     )
+                
                 registre<-STORED$reg
                 save(registre,file="base/transactions_test.rData")
                 
-                if (!(input$libelle %in% tickers$Nom)){
-                  STORED$tick<-STORED$tick %>% add_row(Nom=input$libelle,Ticker=input$ticker)
-                  tickers<-STORED$tick
-                  save(tickers,file="base/tickers.rData")
-                }
+                #on construit un df pour savoir à l'heure actuelle quelle quantité on a de quels actifs (y compris 0, donc ceci vaut pour tous les actifs possédés au moins une fois)
+                histo_port <- STORED$reg %>% dplyr::select(date,quantité,Ticker,operation) %>% mutate(abs=case_when(operation=="achat" ~ quantité,operation=="vente" ~ -quantité )) %>% 
+                  spread(key=Ticker,value=abs) %>%
+                  group_by(date) %>%
+                  summarise_at(vars(-operation,-quantité),funs(sum(., na.rm = TRUE))) %>%
+                  mutate_if(is.numeric,cumsum)
+                
+                STORED$tick <- as.data.frame(t(tail(histo_port%>%dplyr::select(-c("date")),n=1))) %>% mutate(Ticker=row.names(.)) %>% left_join(registre %>% dplyr::select(c("Ticker","libelle"))%>%unique(),by="Ticker")
+              
+                tickers<-STORED$tick
+                save(tickers,file="base/tickers.rData")
                 
                         }
                    )
@@ -211,7 +219,6 @@ registerServer <- function(id) {
               STORED$val=valeurs
               STORED$ope=operations
               
-  
               
               suivi$texte="done"
             })

@@ -66,7 +66,7 @@ portefeuille_netServer <- function(id) {
           
           actifTicker<-reactive({
             req(input$actif)
-            STORED$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
+            STORED$tick %>%  filter(libelle %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
           })
           
           reactiveHighchart1 <- reactive({
@@ -88,7 +88,7 @@ portefeuille_netServer <- function(id) {
              else {
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']], data = STORED$val_net_inv[,symb],lineWidth=1)
+                  hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$val_net_inv[,symb],lineWidth=1)
                 }
                for (cat in input$type){
                  hc <- hc %>%
@@ -115,14 +115,14 @@ portefeuille_netServer <- function(id) {
               
               colnames(data_flags)<-c("date","title","text")
               hcc <- hcc %>%
-                hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']],id=symb, data = STORED$val_net_inv[,symb],yAxis=0) %>%
+                hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']],id=symb, data = STORED$val_net_inv[,symb],yAxis=0) %>%
                 hc_add_series(
                   data_flags, 
                   hcaes(x = date),
                   type = "flags", 
                   onSeries = symb
-                ) %>%
-                hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']], data = STORED$ope[,symb],yAxis=1,type="column") 
+                ) %>%                hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$ope[,symb],yAxis=1,type="line") 
+
               
               #pb: si pas de vente, ou d'achat, alors la ligne dessus plante
             }

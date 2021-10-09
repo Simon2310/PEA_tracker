@@ -49,7 +49,7 @@ portefeuilleServer <- function(id) {
           
           actifTicker<-reactive({
             req(input$actif)
-            STORED$tick %>%  filter(Nom %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
+            STORED$tick %>%  filter(libelle %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
           })
           
           
@@ -80,7 +80,7 @@ portefeuilleServer <- function(id) {
              else {
                 for (symb in valuesInput()){
                   hc <- hc %>%
-                  hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']], data = STORED$val_agr[,symb])
+                  hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$val_agr[,symb])
                 }
               
              }
@@ -93,14 +93,15 @@ portefeuilleServer <- function(id) {
             reactiveHighchart2<-reactive ({ 
               req(STORED$ope)
               
-              hcc<-highchart(type = "stock")
+              hcc<-highchart(type = "stock") %>%
+                hc_yAxis_multiples(create_yaxis(2, height = c(3, 1), turnopposite = TRUE))
               
               for (symb in actifTicker()){
                 data_flags<-STORED$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
   
                 colnames(data_flags)<-c("date","title","text")
                 hcc <- hcc %>%
-                 hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'Nom']],id=symb, data = STORED$val[,symb]) %>%
+                 hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']],id=symb, data = STORED$val[,symb],yAxis=0) %>%
                   hc_add_series(
                     data_flags, 
                     hcaes(x = date),
@@ -109,6 +110,9 @@ portefeuilleServer <- function(id) {
                   )
                 
               }
+              
+              hcc<-hcc %>% hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$ope[,symb],yAxis=1,type="line") 
+              
               hcc
             })
 

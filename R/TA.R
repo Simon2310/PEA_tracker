@@ -13,7 +13,7 @@ library(tidyquant)
 source("~/R/projets/PEA_tracker/R/fonctions_communes.R")
 load("~/R/projets/PEA_tracker/base/ticktable.rData")
 
-#téléchargement brut des données et mise en forme dans un nested df
+#téléchargement brut des données et mise en forme dans un nested df. Fonctionne avec le df ticker_table, on peut filtrer sur les lignes (tickers) que l'on veut.
 download<-function(ticklist) {
   tq_get(ticklist,get="stock.prices",complete_cases=TRUE)%>% group_by(across(1)) %>% nest(data=-c(Ticker,Name,Exchange,Type,Category, Country))
 }

@@ -50,7 +50,7 @@ server <- function(input, output, session) {
  portefeuilleServer("portefeuille")
   portefeuille_netServer("portefeuille_net")
   testServer("test")
-  #courshcServer("courshc")
+  courshcServer("courshc")
 }
 
 shinyApp(ui, server)
