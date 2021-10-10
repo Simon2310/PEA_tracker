@@ -3,37 +3,35 @@
 # run the application by clicking 'Run App' above.
 library(shiny)
 
-portefeuilleUI <- function(id, label = "portefeuille_net") {
+portefeuille_netUI <- function(id, label = "portefeuille_net") {
     ns <- NS(id)
         tagList(
             fluidPage(
-    
+            
+              fluidRow(
+                column(4,
+                       DT::dataTableOutput(ns("out"))
+                ),
+                column(8, highchartOutput(ns("parti")))
+                
+              ),
            
               # Sidebar
               fluidRow(
-                  column(3,
+                  column(4,
                       selectInput(ns("type"),
                                   "type d'actif :", choices=NULL,multiple=TRUE,selected=NULL)
                   ),
-                  column(9, highchartOutput(ns("values")))
+                  column(8, highchartOutput(ns("values")))
                   
               ),
               
+
               fluidRow(
-                column(3,
-                       selectInput(ns("actif"),
-                                   "actif :", choices=NULL,multiple=TRUE,selected=NULL)
-                ),
-                column(9, highchartOutput(ns("parti")))
-   
-              ),
-              fluidRow(
-                column(3,
+                column(4,
                       )
                 ,
-                column(9, DT::dataTableOutput(ns("bilan"))),
-            
-                
+                column(8, DT::dataTableOutput(ns("bilan"))),
               )
             )
         )
@@ -64,10 +62,6 @@ portefeuille_netServer <- function(id) {
             else {STORED$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
           })
           
-          actifTicker<-reactive({
-            req(input$actif)
-            STORED$tick %>%  filter(libelle %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
-          })
           
           reactiveHighchart1 <- reactive({
             req(STORED$ope)
@@ -103,14 +97,13 @@ portefeuille_netServer <- function(id) {
           
           reactiveHighchart2 <- reactive({
             req(STORED$ope)
-            
-            req(input$actif)
-            bilan_filter<-bilan()%>%filter(Ticker %in% actifTicker())%>% dplyr::select(-c("Ticker"))
+
+            bilan_filter<-bilan()[input$out_rows_selected,]%>% dplyr::select(-c("Ticker"))
 
             hcc<-highchart(type = "stock") %>%
               hc_yAxis_multiples(create_yaxis(2, height = c(3, 1), turnopposite = TRUE))
             
-            for (symb in actifTicker()){
+            for (symb in STORED$tick[input$out_rows_selected,"Ticker"]){
               data_flags<-STORED$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
               
               colnames(data_flags)<-c("date","title","text")
@@ -141,6 +134,10 @@ portefeuille_netServer <- function(id) {
           
           output$bilan <-DT::renderDataTable({
             reactiveHighchart2()$bilan_table
+          })
+          
+          output$out <- DT::renderDataTable({
+            STORED$tick%>% arrange(desc(quantité))
           })
           
       }
