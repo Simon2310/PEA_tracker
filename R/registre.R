@@ -112,8 +112,9 @@ registerServer <- function(id) {
                   summarise_at(vars(-operation,-quantité),funs(sum(., na.rm = TRUE))) %>%
                   mutate_if(is.numeric,cumsum)
                 
-                STORED$tick <- as.data.frame(t(tail(histo_port%>%dplyr::select(-c("date")),n=1))) %>% mutate(Ticker=row.names(.)) %>% left_join(registre %>% dplyr::select(c("Ticker","libelle"))%>%unique(),by="Ticker")
-              
+                STORED$tick <- as.data.frame(t(tail(histo_port%>%dplyr::select(-c("date")),n=1))) %>% mutate(Ticker=row.names(.)) %>% 
+                  left_join(STORED$reg %>% dplyr::select(c("Ticker","libelle","type"))%>%unique(),by="Ticker")
+                colnames(STORED$tick)<-c("quantité","Ticker","libelle","type")
                 tickers<-STORED$tick
                 save(tickers,file="base/tickers.rData")
                 
@@ -212,6 +213,10 @@ registerServer <- function(id) {
               
               last_value<-as.data.frame(t(valeur_agr[nrow(valeur_agr),]))
               last_value$Ticker<-rownames(last_value)
+              
+              STORED$tick=STORED$tick%>%left_join(last_value,by="Ticker")
+              colnames(STORED$tick)<-c("quantité","Ticker","libelle","type","valeur")
+
               
               STORED$last_val=last_value
               STORED$val_agr=valeur_agr

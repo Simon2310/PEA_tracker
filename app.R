@@ -32,7 +32,7 @@ ui<-navbarPage("PEA",
             
             tabPanel("Suivi des plus-values",
                      
-                     portefeuilleUI("portefeuille_net", "Portefeuille_net #1")       
+                     portefeuille_netUI("portefeuille_net", "Portefeuille_net #1")       
                      
             ),
             
@@ -47,7 +47,7 @@ ui<-navbarPage("PEA",
 
 server <- function(input, output, session) {
   registerServer("form")
- portefeuilleServer("portefeuille")
+  portefeuilleServer("portefeuille")
   portefeuille_netServer("portefeuille_net")
   testServer("test")
   courshcServer("courshc")

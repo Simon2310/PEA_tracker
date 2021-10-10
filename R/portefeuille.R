@@ -1,4 +1,4 @@
-#
+#test
 # This is the user-interface definition of a Shiny web application. You can
 # run the application by clicking 'Run App' above.
 library(shiny)
@@ -8,25 +8,23 @@ portefeuilleUI <- function(id, label = "portefeuille") {
         tagList(
             fluidPage(
     
-           
-              # Sidebar
               fluidRow(
-                  column(3,
+                column(4,
+                       DT::dataTableOutput(ns("out"))
+                ),
+                column(8, highchartOutput(ns("parti"),height = "600px"))
+                
+              ),           
+
+              fluidRow(
+                  column(4,
                       selectInput(ns("type"),
                                   "type d'actif :", choices=NULL,multiple=TRUE,selected=NULL)
                   ),
-                  column(9, highchartOutput(ns("values")))
+                  column(8, highchartOutput(ns("values")))
                   
-              ),
-              
-              fluidRow(
-                column(3,
-                       selectInput(ns("actif"),
-                                   "type d'actif :", choices=registre %>% distinct(libelle) %>% pull(libelle),multiple=TRUE,selected=NULL)
-                ),
-                column(9, highchartOutput(ns("parti")))
-   
               )
+              
             )
         )
 }
@@ -37,7 +35,7 @@ portefeuilleServer <- function(id) {
         function(input, output,session) {
         
           observe( { req(STORED$ope)
-            updateSelectInput(session,"actif",choices=STORED$reg %>% distinct(libelle) %>% pull(libelle))
+            #updateSelectInput(session,"actif",choices=STORED$reg %>% distinct(libelle) %>% pull(libelle))
             updateSelectInput(session,"type",choices=STORED$reg %>% distinct(type) %>% pull(type))
           })
           
@@ -46,12 +44,6 @@ portefeuilleServer <- function(id) {
             if ("all" %in% input$type){STORED$reg %>% distinct(type) %>% pull(type)}
             else {STORED$reg %>% filter(type %in% input$type) %>% distinct(Ticker) %>% pull(Ticker)}
           })
-          
-          actifTicker<-reactive({
-            req(input$actif)
-            STORED$tick %>%  filter(libelle %in% input$actif) %>% distinct(Ticker) %>% pull(Ticker)
-          })
-          
           
            reactiveHighchart1<-reactive ({ 
              req(STORED$ope)
@@ -96,7 +88,7 @@ portefeuilleServer <- function(id) {
               hcc<-highchart(type = "stock") %>%
                 hc_yAxis_multiples(create_yaxis(2, height = c(3, 1), turnopposite = TRUE))
               
-              for (symb in actifTicker()){
+              for (symb in STORED$tick[input$out_rows_selected,"Ticker"]){
                 data_flags<-STORED$reg %>% filter(Ticker==symb) %>% dplyr::select(date,operation,quantité)
   
                 colnames(data_flags)<-c("date","title","text")
@@ -109,9 +101,10 @@ portefeuilleServer <- function(id) {
                     onSeries = symb
                   )
                 
+                hcc<-hcc %>% hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$ope[,symb],yAxis=1,type="line") 
+                
+                
               }
-              
-              hcc<-hcc %>% hc_add_series(name = STORED$tick[[which(STORED$tick$Ticker==symb)[1],'libelle']], data = STORED$ope[,symb],yAxis=1,type="line") 
               
               hcc
             })
@@ -122,6 +115,10 @@ portefeuilleServer <- function(id) {
           
           output$parti <- renderHighchart({
             reactiveHighchart2()
+          })
+          
+          output$out <- DT::renderDataTable({
+            STORED$tick %>% arrange(desc(quantité))
           })
       }
     )
